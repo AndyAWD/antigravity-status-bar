@@ -309,6 +309,8 @@ function requestUserStatus(port, csrfToken) {
 
 async function fetchLiveQuotaCache() {
   const candidates = findServerCandidates();
+  // 跨所有候選者合併模型資料，避免只取到部分模型
+  const allModels = {};
   for (const info of candidates) {
     const ports = getListeningPorts(info.pid);
     for (const port of ports) {
@@ -316,12 +318,22 @@ async function fetchLiveQuotaCache() {
         const response = await requestUserStatus(port, info.csrf_token);
         const userStatus = response.userStatus || {};
         const cascade = userStatus.cascadeModelConfigData || {};
-        const models = {};
         for (const model of cascade.clientModelConfigs || []) {
-          const quotaInfo = model.quotaInfo || {};
-          if (quotaInfo.remainingFraction === undefined) continue;
+          const quotaInfo = model.quotaInfo;
+          if (!quotaInfo) continue; // 沒有 quotaInfo 視為不受限，或不需處理
+          
+          let fraction = 1;
+          if (quotaInfo.remainingFraction !== undefined) {
+            fraction = parseFloat(quotaInfo.remainingFraction);
+          } else if (quotaInfo.resetTime) {
+            // 如果有 resetTime 但沒有 remainingFraction，表示 protobuf 將 0 省略了
+            fraction = 0;
+          } else {
+            continue;
+          }
+          
           const label = model.label || (model.modelOrAlias && model.modelOrAlias.model) || 'Unknown';
-          const remaining = Math.max(0, Math.min(100, parseFloat(quotaInfo.remainingFraction) * 100));
+          const remaining = Math.max(0, Math.min(100, fraction * 100));
           const entry = {
             name: label,
             remaining_percentage: remaining,
@@ -331,15 +343,18 @@ async function fetchLiveQuotaCache() {
             entry.refreshes_in = formatResetTime(quotaInfo.resetTime);
           }
           const normKey = label.toLowerCase().replace(/[^a-z0-9]+/g, '');
-          models[normKey] = entry;
-        }
-        if (Object.keys(models).length > 0) {
-          return { models, updatedAt: Date.now() };
+          // 若同一模型已存在，以最新（較低）的額度為準
+          if (!allModels[normKey] || entry.remaining_percentage < allModels[normKey].remaining_percentage) {
+            allModels[normKey] = entry;
+          }
         }
       } catch (e) {
         continue;
       }
     }
+  }
+  if (Object.keys(allModels).length > 0) {
+    return { models: allModels, updatedAt: Date.now() };
   }
   return null;
 }
@@ -489,11 +504,13 @@ async function main() {
     }
 
     const normModel = normalizeModelName(fallbackModel);
-    let modelQuota = { remaining_percentage: 100, refreshes_in: '' };
+    let modelQuota = null;
     if (cache && cache.models) {
+      // 第一優先：完全匹配
       if (cache.models[normModel]) {
         modelQuota = cache.models[normModel];
       } else {
+        // 第二優先：子字串模糊匹配
         for (const k in cache.models) {
           if (normModel.includes(k) || k.includes(normModel)) {
             modelQuota = cache.models[k];
@@ -501,7 +518,33 @@ async function main() {
           }
         }
       }
+      // 第三優先：同族群（family）匹配
+      // 同一供應商的模型通常共享額度池（如 Claude 系列、GPT 系列）
+      if (!modelQuota) {
+        const families = ['claude', 'gemini', 'gpt'];
+        const modelFamily = families.find(f => normModel.includes(f));
+        if (modelFamily) {
+          for (const k in cache.models) {
+            if (k.includes(modelFamily)) {
+              // 取同族群中額度最低的（最保守估計）
+              if (!modelQuota || cache.models[k].remaining_percentage < modelQuota.remaining_percentage) {
+                modelQuota = cache.models[k];
+              }
+            }
+          }
+        }
+      }
     }
+    // 若所有策略均無法匹配，使用快取中所有模型的最低額度而非預設 100%
+    if (!modelQuota && cache && cache.models) {
+      const allKeys = Object.keys(cache.models);
+      if (allKeys.length > 0) {
+        modelQuota = allKeys.reduce((min, k) =>
+          cache.models[k].remaining_percentage < min.remaining_percentage ? cache.models[k] : min
+        , cache.models[allKeys[0]]);
+      }
+    }
+    if (!modelQuota) modelQuota = { remaining_percentage: 100, refreshes_in: '' };
 
     const quotaPct = modelQuota.remaining_percentage;
     const quotaColor = getColorByPercentage(quotaPct);
