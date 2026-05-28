@@ -391,13 +391,13 @@ function getGitBranch(lang) {
   }
 }
 
-const RESET = "\\x1b[0m";
-const BOLD = "\\x1b[1m";
-const GRAY = "\\x1b[90m";
-const GREEN = "\\x1b[32m";
-const YELLOW = "\\x1b[33m";
-const ORANGE = "\\x1b[38;5;208m";
-const RED = "\\x1b[31m";
+const RESET = "\x1b[0m";
+const BOLD = "\x1b[1m";
+const GRAY = "\x1b[90m";
+const GREEN = "\x1b[32m";
+const YELLOW = "\x1b[33m";
+const ORANGE = "\x1b[38;5;208m";
+const RED = "\x1b[31m";
 
 // 四階梯色彩辨識：100~75% 綠、74~50% 黃、49~25% 澄、24~0% 紅
 function getColorByPercentage(pct) {
@@ -409,7 +409,15 @@ function getColorByPercentage(pct) {
 
 // 清理 ANSI 碼以計算純文字長度
 function stripAnsi(str) {
-  return str.replace(/[\\u001b\\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+  return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+}
+
+function getDisplayWidth(str) {
+  let width = 0;
+  for (let i = 0; i < str.length; i++) {
+    width += str.charCodeAt(i) > 0x7F ? 2 : 1;
+  }
+  return width;
 }
 
 async function readStdin() {
@@ -460,7 +468,8 @@ async function main() {
     try { if (stdinStr.trim()) meta = JSON.parse(stdinStr); } catch (e) {}
 
     const settings = getSettings();
-    const termWidth = meta?.terminal_width || process.stdout.columns || 80;
+    // 扣除 15 格的安全邊距，防止 CLI 左右 padding 導致過晚換行
+    const termWidth = Math.max(40, (meta?.terminal_width || process.stdout.columns || 80) - 15);
     
     let fallbackModel = 'Gemini 3.5 Flash (High)';
     if (meta?.model?.display_name) fallbackModel = meta.model.display_name;
@@ -470,7 +479,7 @@ async function main() {
     if (!settings?.ui?.footer?.items) {
       const leftText = '? for shortcuts';
       const rightText = fallbackModel;
-      const spacesCount = Math.max(1, termWidth - leftText.length - rightText.length - 1);
+      const spacesCount = Math.max(1, termWidth - getDisplayWidth(leftText) - getDisplayWidth(rightText) - 1);
       const spaces = ' '.repeat(spacesCount);
       console.log(`${leftText}${spaces}${rightText}`);
       process.exit(0);
@@ -639,7 +648,7 @@ async function main() {
       const currentPlain = stripAnsi(currentLine);
       
       // 智慧自動換行計算 (以整塊功能為單位換行)
-      if (currentLine !== '' && currentPlain.length + toAddPlain.length > termWidth) {
+      if (currentLine !== '' && getDisplayWidth(currentPlain) + getDisplayWidth(toAddPlain) > termWidth) {
         lines.push(currentLine);
         currentLine = text;
       } else {
@@ -648,7 +657,7 @@ async function main() {
     }
     if (currentLine !== '') lines.push(currentLine);
     
-    console.log(lines.join('\\n'));
+    console.log(lines.join('\n'));
 
   } catch (err) {
     try {
