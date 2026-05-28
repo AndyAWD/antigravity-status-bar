@@ -425,6 +425,21 @@ function stripAnsi(str) {
   return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
 }
 
+function getCliMemoryMB() {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync(`wmic process where processid=${process.ppid} get WorkingSetSize`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const match = output.match(/\\d+/);
+      if (match) return Math.round(parseInt(match[0], 10) / 1024 / 1024);
+    } else {
+      const output = execSync(`ps -o rss= -p ${process.ppid}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const memKb = parseInt(output.trim(), 10);
+      if (!isNaN(memKb)) return Math.round(memKb / 1024);
+    }
+  } catch (e) {}
+  return Math.round(process.memoryUsage().rss / 1024 / 1024);
+}
+
 function getDisplayWidth(str) {
   let width = 0;
   for (let i = 0; i < str.length; i++) {
@@ -609,7 +624,7 @@ async function main() {
     const contextColor = getColorByPercentage(remainCtx);
     const usedPct = `${usedPctNum.toFixed(1)}%`;
     
-    const rssMem = Math.round((process.memoryUsage().rss || 148857600) / 1024 / 1024);
+    const rssMem = getCliMemoryMB();
     const memUsage = `${rssMem}MB`;
     const totalTokens = totalInput + totalOutput;
     const tokenCount = `${formatTokens(totalTokens)} / ${formatTokens(contextSize)}`;
