@@ -40,8 +40,9 @@
 
 ## 使用方式
 
-1. 將本技能資料夾放入你的 `skills/` 目錄中。
-2. 透過 Antigravity CLI 執行時，直接輸入 `/antigravity-cli-statusline` 即可啟動本技能。
+1. 請前往本專案的 **[Releases 頁面](../../releases/latest)** 下載最新的發佈壓縮檔（`.zip` 或 `.tar.gz`）。
+2. 解壓縮後，將裡面的 `antigravity-cli-statusline` 資料夾直接放入你的 `~/.gemini/skills/` 目錄中。
+3. 透過 Antigravity CLI 執行時，直接輸入 `/antigravity-cli-statusline` 即可啟動本技能。
 
 ## 使用 AI 一鍵新增其他語言
 

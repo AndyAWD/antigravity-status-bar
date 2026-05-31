@@ -1,0 +1,35 @@
+name: Release Skill
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare Extension Directory
+        run: |
+          mkdir -p dist/antigravity-cli-statusline
+          cp SKILL.md dist/antigravity-cli-statusline/
+          cp -r scripts dist/antigravity-cli-statusline/
+
+      - name: Create Archive
+        run: |
+          cd dist
+          tar -czvf antigravity-cli-statusline.tar.gz antigravity-cli-statusline
+          zip -r antigravity-cli-statusline.zip antigravity-cli-statusline
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/antigravity-cli-statusline.tar.gz
+            dist/antigravity-cli-statusline.zip

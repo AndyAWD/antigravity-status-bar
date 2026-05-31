@@ -40,8 +40,9 @@ This repository provides a Skill for setting up and customizing the Antigravity 
 
 ## Getting Started
 
-1. Place this skill inside your `skills/` directory.
-2. When interacting with Antigravity CLI, simply run `/antigravity-cli-statusline` to trigger the skill.
+1. Go to the **[Releases page](../../releases/latest)** of this repository and download the latest release archive (`.zip` or `.tar.gz`).
+2. Extract the archive and place the `antigravity-cli-statusline` folder into your `~/.gemini/skills/` directory.
+3. When interacting with Antigravity CLI, simply run `/antigravity-cli-statusline` to trigger the skill.
 
 ## Add Your Language Translation via AI
 
