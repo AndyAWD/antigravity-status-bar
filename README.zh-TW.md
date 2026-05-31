@@ -66,11 +66,11 @@
 
 ## 貢獻指南 (Contributing)
 
-非常歡迎大家提交 PR（Pull Request）來參與貢獻！如果你對這個專案有任何新功能的想法、發現 Bug，或是想要優化程式碼，都歡迎隨時發起 PR 或建立 Issue。不論是新增更多的狀態列指標、改善跨平台相容性，或是修正錯字，我們都非常期待你的加入！
+非常歡迎大家提交 PR（Pull Request）來參與貢獻！如果你對這個專案有任何新功能的想法、發現 Bug，或是想要最佳化程式碼，都歡迎隨時發起 PR 或建立 Issue。不論是新增更多的狀態列指標、改善跨平台相容性，或是修正錯字，都非常期待你的加入！
 
 ## 鳴謝
 
-特別感謝 [60ke/antigravity-statusline](https://github.com/60ke/antigravity-statusline) 專案。本專案的額度監控靈感正是來自於此，由於該原專案主要是使用 Python 撰寫，在 Windows 和 macOS 跨平台執行上可能遇到環境設定的困難，因此我們使用 JavaScript (Node.js) 進行改寫，以實現真正的跨平台免安裝依賴執行。
+特別感謝 [60ke/antigravity-statusline](https://github.com/60ke/antigravity-statusline) 專案。本專案的額度監控靈感正是來自於此，由於該原專案主要是使用 Python 撰寫，在 Windows 和 macOS 跨平台執行上可能遇到環境設定的困難，因此我使用 JavaScript (Node.js) 進行改寫，以實現真正的跨平台免安裝依賴執行。
 
 ## 授權條款
 
