@@ -5,11 +5,18 @@ import os from 'os';
 
 function getGitBranch(lang) {
   try {
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-      windowsHide: true
-    }).trim();
+    const opts = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true };
+    let branch = '';
+    try {
+      branch = execSync('git rev-parse --abbrev-ref HEAD', opts).trim();
+    } catch (err) {
+      if (process.platform === 'win32') {
+        const gitPath = 'C:\\Program Files\\Git\\cmd\\git.exe';
+        if (existsSync(gitPath)) {
+          branch = execSync(`"${gitPath}" rev-parse --abbrev-ref HEAD`, opts).trim();
+        }
+      }
+    }
     return branch || (lang === 'zh-tw' ? '無版本控制' : (lang === 'jp' ? 'バージョン管理なし' : 'No VC'));
   } catch (e) {
     return lang === 'zh-tw' ? '無版本控制' : (lang === 'jp' ? 'バージョン管理なし' : 'No VC');
